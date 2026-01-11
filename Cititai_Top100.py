@@ -1,20 +1,27 @@
-import os  # ← これを追加（環境変数を読み込むため）
+import os
 import requests
 import sqlite3
 import datetime
-# ... その他のインポート
+import re
+import time
+from collections import Counter
+from deep_translator import GoogleTranslator
+# ↓ これが足りなかったためにエラーが出ていました
+from supabase import create_client, Client 
 
 # --- 設定 ---
-# ◯ GitHub Secretsから値を取得するように変更
+# GitHub Secretsから値を取得
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 
-# デバッグ用：URLが空でないかチェック
+# URLが空でないかチェック
 if not url or not key:
     raise ValueError("SupabaseのURLまたはKeyが設定されていません。GitHub Secretsを確認してください。")
 
+# ここでエラーが出ていた箇所の修正が反映されます
 supabase: Client = create_client(url, key)
 
+# ... 以下、def fetch_civitai_top_prompts などの続き ...
 def save_ranking_to_supabase(counter, category, rating, current_time):
     for token_en, count in counter.most_common(30):
         # 1. マスタ確認 (SELECT)
@@ -37,3 +44,4 @@ def save_ranking_to_supabase(counter, category, rating, current_time):
             "collected_at": current_time
 
         }).execute()
+
