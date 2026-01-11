@@ -1,9 +1,18 @@
-import os
-from supabase import create_client, Client
+import os  # ← これを追加（環境変数を読み込むため）
+import requests
+import sqlite3
+import datetime
+# ... その他のインポート
 
-# SupabaseのURLとKey（設定画面から取得）
-url: str = "あなたのSUPABASE_URL"
-key: str = "あなたのSUPABASE_ANON_KEY"
+# --- 設定 ---
+# ◯ GitHub Secretsから値を取得するように変更
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY")
+
+# デバッグ用：URLが空でないかチェック
+if not url or not key:
+    raise ValueError("SupabaseのURLまたはKeyが設定されていません。GitHub Secretsを確認してください。")
+
 supabase: Client = create_client(url, key)
 
 def save_ranking_to_supabase(counter, category, rating, current_time):
@@ -26,4 +35,5 @@ def save_ranking_to_supabase(counter, category, rating, current_time):
             "rating": rating,
             "count": count,
             "collected_at": current_time
+
         }).execute()
