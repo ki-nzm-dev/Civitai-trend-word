@@ -1,0 +1,20 @@
+name: Civitai Genre Hunter
+on:
+  workflow_dispatch: # これで「手動実行ボタン」が表示されます
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install requests supabase
+      - name: Run Genre Hunter
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python Cititai_Genre_Hunter.py # ここで新しいファイル名を指定
