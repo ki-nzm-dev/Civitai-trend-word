@@ -60,29 +60,18 @@ def translate_text_safe(text):
         return text
 
 # --- 3. DB保存ロジック ---
-def save_ranking_to_supabase(counter, category, rating, current_time):
-    print(f"  Saving {category} ranking ({rating}) to Supabase...")
-    for token_en, count in counter.most_common(30):
-        # 1. マスタ確認
-        res = supabase.table("m_prompts").select("prompt_id").eq("token_en", token_en).execute()
-        
-        if not res.data:
-            # 2. なければ翻訳して登録
-            print(f"    New token: {token_en} -> Translating...")
-            token_jp = translate_text_safe(token_en)
-            res_ins = supabase.table("m_prompts").insert({"token_en": token_en, "token_jp": token_jp}).execute()
-            prompt_id = res_ins.data[0]["prompt_id"]
-        else:
-            prompt_id = res.data[0]["prompt_id"]
-
-        # 3. トランザクション登録
-        supabase.table("t_prompt_stats").insert({
-            "prompt_id": prompt_id,
-            "category": category,
-            "rating": rating,
-            "count": count,
-            "collected_at": current_time
-        }).execute()
+# 保存関数の引数に source を追加
+def save_ranking_to_supabase(counter, category, rating, current_time, source_name="civitai"):
+    # ... 中略 ...
+    # 3. トランザクション登録時に source を含める
+    supabase.table("t_prompt_stats").insert({
+        "prompt_id": prompt_id,
+        "category": category,
+        "rating": rating,
+        "count": count,
+        "collected_at": current_time,
+        "source": source_name  # ← ここを追加
+    }).execute()
 
 # --- 4. メイン実行関数 ---
 def main():
@@ -117,3 +106,4 @@ def main():
 # --- 5. 実行エントリーポイント (ここが重要！) ---
 if __name__ == "__main__":
     main()
+
