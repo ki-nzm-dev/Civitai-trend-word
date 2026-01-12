@@ -60,18 +60,34 @@ def translate_text_safe(text):
         return text
 
 # --- 3. DB保存ロジック ---
-# 保存関数の引数に source を追加
 def save_ranking_to_supabase(counter, category, rating, current_time, source_name="civitai"):
-    # ... 中略 ...
-    # 3. トランザクション登録時に source を含める
-    supabase.table("t_prompt_stats").insert({
-        "prompt_id": prompt_id,
-        "category": category,
-        "rating": rating,
-        "count": count,
-        "collected_at": current_time,
-        "source": source_name  # ← ここを追加
-    }).execute()
+    print(f"  Saving {category} ranking ({rating}) to Supabase...")
+    for token_en, count in counter.most_common(30):
+        # 3-1. マスタ確認
+        res = supabase.table("m_prompts").select("prompt_id").eq("token_en", token_en).execute()
+        
+        if not res.data:
+            # マスタになければ翻訳して新規登録
+            print(f"    New token: {token_en} -> Translating...")
+            token_jp = translate_text_safe(token_en)
+            res_ins = supabase.table("m_prompts").insert({
+                "token_en": token_en, 
+                "token_jp": token_jp,
+                "status": "unconfirmed" # 初期ステータス
+            }).execute()
+            prompt_id = res_ins.data[0]["prompt_id"]
+        else:
+            prompt_id = res.data[0]["prompt_id"]
+
+        # 3-2. トランザクション登録
+        supabase.table("t_prompt_stats").insert({
+            "prompt_id": prompt_id,
+            "category": category,
+            "rating": rating,
+            "count": count,
+            "collected_at": current_time,
+            "source": source_name
+        }).execute()
 
 # --- 4. メイン実行関数 ---
 def main():
@@ -97,12 +113,10 @@ def main():
                 pos_counter.update(clean_and_tokenize(meta.get('prompt')))
                 neg_counter.update(clean_and_tokenize(meta.get('negativePrompt')))
 
-        # DB保存実行
         save_ranking_to_supabase(pos_counter, 'positive', rating_label, current_time)
         save_ranking_to_supabase(neg_counter, 'negative', rating_label, current_time)
 
     print("\n--- All Processes Completed Successfully ---")
 
-# --- 5. 実行エントリーポイント (ここが重要！) ---
 if __name__ == "__main__":
     main()
